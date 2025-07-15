@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Reddit Karma Checker (Login Version)</title>
+  <title>Reddit Karma Checker (OAuth Login)</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -29,18 +29,18 @@
   </style>
 </head>
 <body>
-  <h2>🔐 Reddit Karma Checker (Login Required)</h2>
+  <h2>🔐 Reddit Karma Checker</h2>
   <button onclick="login()">Log in with Reddit</button>
   <div id="result">Awaiting login...</div>
 
   <script>
     const CLIENT_ID = "Bbyhn7pifA6txkt6GDQGDA";
-    const REDIRECT_URI = "i-K12b2c_S7m3UT6hkzK2U4XEVFUMQ";
+    const REDIRECT_URI = "https://nate0911.github.io/Karmacheck/";
 
     function login() {
       const state = Math.random().toString(36).substring(2);
       const authUrl =
-        `https://www.reddit.com/api/v1/authorize?client_id=${CLIENT_ID}` +
+        `https://www.reddit.com/api/v1/authorize?client_id=${Bbyhn7pifA6txkt6GDQGDA}` +
         `&response_type=token` +
         `&state=${state}` +
         `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
@@ -61,7 +61,7 @@
       fetch("https://oauth.reddit.com/api/v1/me", {
         headers: {
           Authorization: `Bearer ${token}`,
-          "User-Agent": "KarmaChecker (by /u/YOUR_USERNAME)"
+          "User-Agent": "KarmaChecker (by /u/DragonflyDelicious)"
         }
       })
       .then(res => res.json())
@@ -80,7 +80,7 @@
 ${qualifies ? "✅ Qualified!" : "❌ Not qualified."}`;
       })
       .catch(err => {
-        result.innerText = "⚠️ Could not fetch profile: " + err.message;
+        result.innerText = "⚠️ Error fetching profile: " + err.message;
       });
     };
   </script>
