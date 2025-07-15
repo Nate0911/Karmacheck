@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Reddit Karma Checker (OAuth Login)</title>
+  <title>Reddit Karma Checker (Login)</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -40,7 +40,7 @@
     function login() {
       const state = Math.random().toString(36).substring(2);
       const authUrl =
-        `https://www.reddit.com/api/v1/authorize?client_id=${Bbyhn7pifA6txkt6GDQGDA}` +
+        `https://www.reddit.com/api/v1/authorize?client_id=${CLIENT_ID}` +
         `&response_type=token` +
         `&state=${state}` +
         `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
@@ -61,20 +61,21 @@
       fetch("https://oauth.reddit.com/api/v1/me", {
         headers: {
           Authorization: `Bearer ${token}`,
-          "User-Agent": "KarmaChecker (by /u/DragonflyDelicious)"
+          "User-Agent": "KarmaChecker (by /u/Nate0911)"
         }
       })
       .then(res => res.json())
       .then(data => {
         const name = data.name;
-        const karma = data.comment_karma + data.link_karma;
+        const cKarma = data.comment_karma || 0;
+        const lKarma = data.link_karma || 0;
         const ageDays = Math.floor((Date.now() / 1000 - data.created) / 86400);
-        const qualifies = karma > 300 || ageDays > 365;
+        const qualifies = cKarma + lKarma > 300 || ageDays > 365;
 
         result.innerText =
           `👤 Username: ${name}
-🗨️ Comment Karma: ${data.comment_karma}
-🔗 Link Karma: ${data.link_karma}
+🗨️ Comment Karma: ${cKarma}
+🔗 Link Karma: ${lKarma}
 📅 Account Age: ${ageDays} days
 
 ${qualifies ? "✅ Qualified!" : "❌ Not qualified."}`;
