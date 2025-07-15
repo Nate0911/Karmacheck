@@ -1,17 +1,22 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Reddit Karma Checker</title>
+  <title>Reddit Karma Checker (Login Version)</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       padding: 2rem;
       background: #f6f7f8;
     }
-    input, button {
-      padding: 10px;
+    button {
+      padding: 10px 16px;
       font-size: 16px;
-      margin: 8px 0;
+      margin: 12px 0;
+      background: #ff4500;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
     }
     #result {
       margin-top: 20px;
@@ -24,47 +29,60 @@
   </style>
 </head>
 <body>
-  <h2>🔍 Reddit Karma Checker</h2>
-  <input id="username" placeholder="Enter Reddit username" />
-  <button onclick="check()">Check Karma</button>
-  <div id="result">Awaiting input…</div>
+  <h2>🔐 Reddit Karma Checker (Login Required)</h2>
+  <button onclick="login()">Log in with Reddit</button>
+  <div id="result">Awaiting login...</div>
 
   <script>
-    function check() {
-      const name = document.getElementById('username').value.trim().toLowerCase();
-      const output = document.getElementById('result');
-      if (!name) return output.innerText = "⚠️ Please enter a username.";
+    const CLIENT_ID = "Bbyhn7pifA6txkt6GDQGDA";
+    const REDIRECT_URI = "i-K12b2c_S7m3UT6hkzK2U4XEVFUMQ";
 
-      const url = `https://www.reddit.com/user/${name}/about.json`;
-      output.innerText = "⏳ Fetching Reddit profile…";
-
-      fetch(url).then(res => {
-        if (!res.ok) {
-          output.innerText = `🚫 Failed with status ${res.status}. Reddit may be blocking requests.`;
-          return;
-        }
-        return res.json();
-      }).then(data => {
-        if (!data?.data) {
-          output.innerText = "🚫 No profile data found. Account may be private, deleted, or banned.";
-          return;
-        }
-
-        const cKarma = data.data.comment_karma || 0;
-        const lKarma = data.data.link_karma || 0;
-        const created = new Date(data.data.created_utc * 1000);
-        const ageDays = Math.floor((Date.now() - created.getTime()) / (1000 * 60 * 60 * 24));
-        const qualifies = ageDays > 365 || (cKarma + lKarma) > 300;
-
-        output.innerText =
-          `${qualifies ? "✅ Qualified!" : "❌ Not qualified."}
-🗨️ Comment Karma: ${cKarma}
-🔗 Link Karma: ${lKarma}
-📅 Account Age: ${ageDays} days`;
-      }).catch(err => {
-        output.innerText = "⚠️ Error occurred: " + err.message;
-      });
+    function login() {
+      const state = Math.random().toString(36).substring(2);
+      const authUrl =
+        `https://www.reddit.com/api/v1/authorize?client_id=${CLIENT_ID}` +
+        `&response_type=token` +
+        `&state=${state}` +
+        `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
+        `&duration=temporary` +
+        `&scope=identity`;
+      window.location.href = authUrl;
     }
+
+    window.onload = () => {
+      if (!window.location.hash.includes("access_token")) return;
+
+      const params = new URLSearchParams(window.location.hash.slice(1));
+      const token = params.get("access_token");
+      const result = document.getElementById("result");
+
+      result.innerText = "🔍 Fetching your Reddit profile…";
+
+      fetch("https://oauth.reddit.com/api/v1/me", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "User-Agent": "KarmaChecker (by /u/YOUR_USERNAME)"
+        }
+      })
+      .then(res => res.json())
+      .then(data => {
+        const name = data.name;
+        const karma = data.comment_karma + data.link_karma;
+        const ageDays = Math.floor((Date.now() / 1000 - data.created) / 86400);
+        const qualifies = karma > 300 || ageDays > 365;
+
+        result.innerText =
+          `👤 Username: ${name}
+🗨️ Comment Karma: ${data.comment_karma}
+🔗 Link Karma: ${data.link_karma}
+📅 Account Age: ${ageDays} days
+
+${qualifies ? "✅ Qualified!" : "❌ Not qualified."}`;
+      })
+      .catch(err => {
+        result.innerText = "⚠️ Could not fetch profile: " + err.message;
+      });
+    };
   </script>
 </body>
 </html>
