@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Reddit Karma Checker</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -33,7 +33,6 @@
   </style>
 </head>
 <body>
-
   <h2>🔐 Reddit Karma Checker</h2>
   <button onclick="login()">Log in with Reddit</button>
   <div id="result">Awaiting login...</div>
@@ -66,9 +65,13 @@
       const result = document.getElementById("result");
 
       if (returnedState !== savedState) {
+        alert("⚠️ State mismatch. Possible CSRF attack.");
         result.innerText = "⚠️ State mismatch. Possible CSRF attack.";
         return;
       }
+
+      // State matches, clear saved state
+      localStorage.removeItem("oauth_state");
 
       result.innerText = "🔍 Fetching your Reddit profile…";
 
@@ -120,40 +123,6 @@ ${qualifies ? "✅ Qualified!" : "❌ Not qualified."}`;
         alert("Error sending data to sheet.");
       });
     }
-
-
-  function login() {
-    const state = Math.random().toString(36).substring(2);
-    localStorage.setItem("oauth_state", state);  // Save state before redirect
-    const authUrl =
-      `https://www.reddit.com/api/v1/authorize?client_id=${CLIENT_ID}` +
-      `&response_type=token&state=${state}` +
-      `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
-      `&duration=temporary&scope=identity`;
-    window.location.href = authUrl;
-  }
-
-  window.onload = () => {
-    if (!window.location.hash.includes("access_token")) return;
-
-    const params = new URLSearchParams(window.location.hash.slice(1));
-    const returnedState = params.get("state");
-    const savedState = localStorage.getItem("oauth_state");
-
-    if (returnedState !== savedState) {
-      alert("⚠️ State mismatch. Possible CSRF attack.");
-      return; // Stop login process
-    }
-
-    // State matches, clear saved state
-    localStorage.removeItem("oauth_state");
-
-    const token = params.get("access_token");
-    // proceed with fetch and everything...
-  }
-
-
   </script>
-
 </body>
 </html>
