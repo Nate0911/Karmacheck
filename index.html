@@ -1,39 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <script>
-  const SHEET_ENDPOINT = "https://script.google.com/macros/s/AKfycbyI5kZ5h1BbNTEmt0qBEFgQWPQB7B3q8LWadzmxhc2OlyYk21ook2FZNA2HpXXTDxpRig/exec";
-  const CORS_PROXY = "https://corsproxy.io/?"; // Add proxy to handle CORS
-
-  function sendToSheet(data) {
-    fetch(CORS_PROXY + SHEET_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
-    })
-    .then(response => response.text())
-    .then(text => {
-      console.log("✅ Sheet logging response:", text);
-      // Optionally show confirmation on page:
-      alert("Karma Logged!");
-    })
-    .catch(err => {
-      console.error("❌ Logging error:", err);
-      alert("Logging failed. Check browser console.");
-    });
-  }
-
-  // Example: Call this function after Reddit login completes
-  function onRedditLoginSuccess(userData) {
-    const logPayload = {
-      name: userData.name,
-      karma: userData.karma,
-      ageDays: userData.ageDays,
-      qualified: userData.qualified
-    };
-    sendToSheet(logPayload);
-  }
-</script>
+  
 
   <title>Reddit Karma Checker</title>
   <style>
