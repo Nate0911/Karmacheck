@@ -34,9 +34,9 @@
   <div id="result">Awaiting login...</div>
 
   <script>
-    const CLIENT_ID = "SmslzzvON3NSyd_dJ1zU2Q"; // e.g., abc123xyz456
+    const CLIENT_ID = "SmslzzvON3NSyd_dJ1zU2Q";
     const REDIRECT_URI = "https://nate0911.github.io/Karmacheck/";
-    const SHEET_ENDPOINT = "YOUR_WEB_APP_URL"; // e.g., https://script.google.com/macros/s/.../exec
+    const SHEET_ENDPOINT = "https://script.google.com/macros/s/AKfycbySl8Pi4TgIDM0zzINmmNjy8uKrjI241ndwR-LEodxkYwITorPpBogbaFGTOnH_LEynyw/exec";
 
     function login() {
       const state = Math.random().toString(36).substring(2);
@@ -95,8 +95,8 @@ ${qualifies ? "✅ Qualified!" : "❌ Not qualified."}`;
         body: JSON.stringify(data),
         headers: { "Content-Type": "application/json" }
       })
-      .then(res => console.log("Logged to sheet:", res.status))
-      .catch(err => console.error("Logging error:", err.message));
+      .then(res => console.log("✅ Logged to sheet:", res.status))
+      .catch(err => console.error("⚠️ Logging error:", err.message));
     }
   </script>
 </body>
