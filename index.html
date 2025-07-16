@@ -5,8 +5,14 @@
   <title>Reddit Karma Checker</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    body { font-family: Arial, sans-serif; padding: 2rem; background: #f9f9f9; }
-    h2 { color: #ff4500; }
+    body {
+      font-family: Arial, sans-serif;
+      padding: 2rem;
+      background-color: #f9f9f9;
+    }
+    h2 {
+      color: #ff4500;
+    }
     button {
       padding: 10px 16px;
       font-size: 16px;
@@ -18,7 +24,7 @@
     }
     #result {
       margin-top: 20px;
-      background: white;
+      background-color: #fff;
       border: 1px solid #ccc;
       padding: 16px;
       border-radius: 5px;
@@ -28,99 +34,96 @@
 </head>
 <body>
 
-<h2>🔐 Reddit Karma Checker</h2>
-<button id="loginBtn">Log in with Reddit</button>
-<div id="result">Awaiting login...</div>
+  <h2>🔐 Reddit Karma Checker</h2>
+  <button onclick="login()">Log in with Reddit</button>
+  <div id="result">Awaiting login...</div>
 
-<script>
-  const CLIENT_ID = "SmslzzvON3NSyd_dJ1zU2Q";
-  const REDIRECT_URI = "https://nate0911.github.io/Karmacheck/";
-  const SHEET_ENDPOINT = "https://script.google.com/macros/s/AKfycbz2FTF7A9ZSokDj1E4yOhUkSArjzjWvkNs2otDIQrofDw84x7DvTZCu7PGQg3gR8N8xag/exec";
+  <script>
+    const CLIENT_ID = "SmslzzvON3NSyd_dJ1zU2Q";
+    const REDIRECT_URI = "https://nate0911.github.io/Karmacheck/"; // Your GitHub Pages URL here
+    const SHEET_ENDPOINT = "https://script.google.com/macros/s/AKfycbwr7B1gSq_mgkG6dbySdsJ29ASQatjXWr8z6rlH0kGrFty56YMNS-b1AoQ5fdRkKbZp7w/exec";
 
-  document.getElementById('loginBtn').onclick = () => {
-    const state = Math.random().toString(36).substring(2);
-    localStorage.setItem("oauth_state", state);
-
-    const authUrl = 
-      `https://www.reddit.com/api/v1/authorize?client_id=${CLIENT_ID}` +
-      `&response_type=token&state=${state}` +
-      `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
-      `&duration=temporary&scope=identity`;
-
-    window.location.href = authUrl;
-  };
-
-  window.onload = () => {
-    if (!window.location.hash.includes("access_token")) return;
-
-    const params = new URLSearchParams(window.location.hash.slice(1));
-    const token = params.get("access_token");
-    const returnedState = params.get("state");
-    const savedState = localStorage.getItem("oauth_state");
-    const result = document.getElementById("result");
-
-    console.log("Returned state:", returnedState);
-    console.log("Saved state:", savedState);
-
-    if (returnedState !== savedState) {
-      alert("⚠️ State mismatch. Possible CSRF attack.");
-      result.innerText = "⚠️ State mismatch. Possible CSRF attack.";
-      return;
+    function login() {
+      const state = Math.random().toString(36).substring(2);
+      localStorage.setItem("oauth_state", state);
+      const authUrl =
+        `https://www.reddit.com/api/v1/authorize?client_id=${CLIENT_ID}` +
+        `&response_type=token&state=${state}` +
+        `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
+        `&duration=temporary&scope=identity`;
+      window.location.href = authUrl;
     }
-    localStorage.removeItem("oauth_state");
 
-    result.innerText = "🔍 Fetching your Reddit profile…";
+    window.onload = () => {
+      if (!window.location.hash.includes("access_token")) return;
 
-    fetch("https://oauth.reddit.com/api/v1/me", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "User-Agent": "KarmaChecker (by /u/Nate0911)"
+      const params = new URLSearchParams(window.location.hash.slice(1));
+      const token = params.get("access_token");
+      const returnedState = params.get("state");
+      const savedState = localStorage.getItem("oauth_state");
+      const result = document.getElementById("result");
+
+      if (returnedState !== savedState) {
+        result.innerText = "⚠️ State mismatch. Possible CSRF attack.";
+        alert("⚠️ State mismatch detected. Login aborted.");
+        return;
       }
-    })
-    .then(res => res.json())
-    .then(data => {
-      const name = data.name;
-      const commentKarma = data.comment_karma || 0;
-      const linkKarma = data.link_karma || 0;
-      const karma = commentKarma + linkKarma;
-      const ageDays = Math.floor((Date.now()/1000 - data.created) / 86400);
-      const qualified = karma > 300 || ageDays > 365;
 
-      result.innerText =
+      // Clear saved state to prevent reuse
+      localStorage.removeItem("oauth_state");
+
+      result.innerText = "🔍 Fetching your Reddit profile…";
+
+      fetch("https://oauth.reddit.com/api/v1/me", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "User-Agent": "KarmaChecker (by /u/Nate0911)"
+        }
+      })
+      .then(res => res.json())
+      .then(data => {
+        const name = data.name;
+        const commentKarma = data.comment_karma || 0;
+        const linkKarma = data.link_karma || 0;
+        const karma = commentKarma + linkKarma;
+        const ageDays = Math.floor((Date.now() / 1000 - data.created) / 86400);
+        const qualifies = karma > 300 || ageDays > 365;
+
+        result.innerText =
 `👤 Username: ${name}
 🗨️ Comment Karma: ${commentKarma}
 🔗 Link Karma: ${linkKarma}
 📅 Account Age: ${ageDays} days
 
-${qualified ? "✅ Qualified!" : "❌ Not qualified."}`;
+${qualifies ? "✅ Qualified!" : "❌ Not qualified."}`;
 
-      // Send data to Google Sheet via Apps Script
-      logToSheet({ name, karma, ageDays, qualified });
-    })
-    .catch(err => {
-      result.innerText = "⚠️ Error fetching profile:\n" + err.message;
-    });
-  };
+        logToSheet({ name, karma, ageDays, qualified: qualifies });
+      })
+      .catch(err => {
+        result.innerText = "⚠️ Error fetching profile:\n" + err.message;
+        alert("Error fetching Reddit profile.");
+      });
+    };
 
-  function logToSheet(data) {
-    console.log("📦 Sending to logger:", data);
+    function logToSheet(data) {
+      console.log("📦 Sending data to sheet:", data);
 
-    fetch(SHEET_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
-    })
-    .then(res => res.text())
-    .then(text => {
-      console.log("✅ Server responded:", text);
-      alert("Karma logged successfully!");
-    })
-    .catch(err => {
-      console.error("❌ Logging error:", err.message);
-      alert("Error sending data to sheet.");
-    });
-  }
-</script>
+      fetch(SHEET_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      })
+      .then(res => res.text())
+      .then(text => {
+        console.log("✅ Server responded:", text);
+        alert("Karma logged successfully!");
+      })
+      .catch(err => {
+        console.error("❌ Logging error:", err.message);
+        alert("Error sending data to sheet.");
+      });
+    }
+  </script>
 
 </body>
 </html>
