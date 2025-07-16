@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Reddit Karma Checker (Login)</title>
+  <title>Reddit Karma Checker (OAuth + Logging)</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -34,8 +34,9 @@
   <div id="result">Awaiting login...</div>
 
   <script>
-    const CLIENT_ID = "SmslzzvON3NSyd_dJ1zU2Q";
+    const CLIENT_ID = "SmslzzvON3NSyd_dJ1zU2Q"; // e.g., abc123xyz456
     const REDIRECT_URI = "https://nate0911.github.io/Karmacheck/";
+    const SHEET_ENDPOINT = "YOUR_WEB_APP_URL"; // e.g., https://script.google.com/macros/s/.../exec
 
     function login() {
       const state = Math.random().toString(36).substring(2);
@@ -69,8 +70,9 @@
         const name = data.name;
         const cKarma = data.comment_karma || 0;
         const lKarma = data.link_karma || 0;
+        const karma = cKarma + lKarma;
         const ageDays = Math.floor((Date.now() / 1000 - data.created) / 86400);
-        const qualifies = cKarma + lKarma > 300 || ageDays > 365;
+        const qualifies = karma > 300 || ageDays > 365;
 
         result.innerText =
           `👤 Username: ${name}
@@ -79,11 +81,23 @@
 📅 Account Age: ${ageDays} days
 
 ${qualifies ? "✅ Qualified!" : "❌ Not qualified."}`;
+
+        logToSheet({ name, karma, ageDays, qualified: qualifies });
       })
       .catch(err => {
         result.innerText = "⚠️ Error fetching profile: " + err.message;
       });
     };
+
+    function logToSheet(data) {
+      fetch(SHEET_ENDPOINT, {
+        method: "POST",
+        body: JSON.stringify(data),
+        headers: { "Content-Type": "application/json" }
+      })
+      .then(res => console.log("Logged to sheet:", res.status))
+      .catch(err => console.error("Logging error:", err.message));
+    }
   </script>
 </body>
 </html>
