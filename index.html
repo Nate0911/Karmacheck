@@ -120,6 +120,39 @@ ${qualifies ? "✅ Qualified!" : "❌ Not qualified."}`;
         alert("Error sending data to sheet.");
       });
     }
+
+
+  function login() {
+    const state = Math.random().toString(36).substring(2);
+    localStorage.setItem("oauth_state", state);  // Save state before redirect
+    const authUrl =
+      `https://www.reddit.com/api/v1/authorize?client_id=${CLIENT_ID}` +
+      `&response_type=token&state=${state}` +
+      `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
+      `&duration=temporary&scope=identity`;
+    window.location.href = authUrl;
+  }
+
+  window.onload = () => {
+    if (!window.location.hash.includes("access_token")) return;
+
+    const params = new URLSearchParams(window.location.hash.slice(1));
+    const returnedState = params.get("state");
+    const savedState = localStorage.getItem("oauth_state");
+
+    if (returnedState !== savedState) {
+      alert("⚠️ State mismatch. Possible CSRF attack.");
+      return; // Stop login process
+    }
+
+    // State matches, clear saved state
+    localStorage.removeItem("oauth_state");
+
+    const token = params.get("access_token");
+    // proceed with fetch and everything...
+  }
+
+
   </script>
 
 </body>
