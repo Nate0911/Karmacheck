@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8" />
   <title>Reddit Karma Checker</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -40,8 +39,8 @@
 
   <script>
     const CLIENT_ID = "SmslzzvON3NSyd_dJ1zU2Q";
-    const REDIRECT_URI = "https://nate0911.github.io/Karmacheck/"; // Your actual redirect URI
-    const SHEET_ENDPOINT = "https://script.google.com/macros/s/AKfycbwblgBCUE1P49l1RT6J4IyWvIzx97rm-YYxy32OUxRh8mJZunqinbWRQEV_8anLyee71w/exec";
+    const REDIRECT_URI = "https://nate0911.github.io/Karmacheck/";
+    const SHEET_ENDPOINT = "https://script.google.com/macros/s/AKfycbxsMb104WaP2wlV3LpIMNN1gkCfuJcu5dQI-OaDBz2fbpvROt979NAqD-i6WdyWBMQ2dQ/exec";
 
     function login() {
       const state = Math.random().toString(36).substring(2);
@@ -65,7 +64,6 @@
 
       if (returnedState !== savedState) {
         result.innerText = "⚠️ State mismatch. Possible CSRF attack.";
-        alert("⚠️ State mismatch detected. Login aborted.");
         return;
       }
 
@@ -81,23 +79,18 @@
       })
       .then(res => res.json())
       .then(data => {
-        const commentKarma = data.comment_karma || 0;
-        const linkKarma = data.link_karma || 0;
-        const karma = commentKarma + linkKarma;
-
+        const karma = (data.comment_karma || 0) + (data.link_karma || 0);
         result.innerText = `👤 Username: ${data.name}\nTotal Karma: ${karma}`;
 
-        // Send only karma count
         logToSheet({ karma });
       })
       .catch(err => {
         result.innerText = "⚠️ Error fetching profile:\n" + err.message;
-        alert("Error fetching Reddit profile.");
       });
     };
 
     function logToSheet(data) {
-      console.log("📦 Sending data to sheet:", data);
+      console.log("📦 Sending karma to logger:", data);
 
       fetch(SHEET_ENDPOINT, {
         method: "POST",
