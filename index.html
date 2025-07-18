@@ -1,124 +1,98 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Reddit Karma Checker</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: sans-serif;
       padding: 2rem;
-      background-color: #f9f9f9;
-    }
-    h2 {
-      color: #ff4500;
+      background-color: #f6f6f6;
+      color: #333;
     }
     button {
-      padding: 10px 16px;
-      font-size: 16px;
       background-color: #ff4500;
       color: white;
+      padding: 10px 20px;
+      font-size: 18px;
       border: none;
       border-radius: 5px;
       cursor: pointer;
     }
-    #result {
+    #status {
       margin-top: 20px;
-      background-color: #fff;
-      border: 1px solid #ccc;
-      padding: 16px;
-      border-radius: 5px;
-      white-space: pre-wrap;
+      font-size: 16px;
     }
   </style>
 </head>
 <body>
 
-  <h2>🔐 Reddit Karma Checker</h2>
-  <button onclick="login()">Log in with Reddit</button>
-  <div id="result">Awaiting login...</div>
-
-  <!-- Load the Google API client -->
-  <script src="https://apis.google.com/js/api.js"></script>
+  <h1>🔐 Reddit Karma Checker</h1>
+  <button onclick="loginWithReddit()">Log in with Reddit</button>
+  <div id="status">Awaiting login...</div>
 
   <script>
-    // Reddit OAuth credentials
-    const REDDIT_CLIENT_ID = "SmslzzvON3NSyd_dJ1zU2Q";  // Replace with your Reddit Client ID
-    const REDDIT_REDIRECT_URI = "https://nate0911.github.io/Karmacheck/";
+    const CLIENT_ID = 'SmslzzvON3NSyd_dJ1zU2Q';
+    const REDIRECT_URI = 'https://nate0911.github.io/Karmacheck/';
+    const SCOPES = 'identity';
 
-    // Google OAuth credentials for Sheets API
-    const GOOGLE_CLIENT_ID = "583596748573-2jcem0uabkifi174vk0su5eidfuf6r7h.apps.googleusercontent.com"; // Replace with your Google Client ID
-    const GOOGLE_API_KEY = "AIzaSyA6a-FNOIbv1soEWYCv7bJGvf1qj0wAtHQQ"; // Your Google API Key
-    const SPREADSHEET_ID = "1j4bf4NNhFzYZQV3XTEUdutMla2vkTL7MkAPrgHmqx4A";  // Your Google Spreadsheet ID
-
-    let redditToken = '';
-
-    function login() {
+    function loginWithReddit() {
       const state = Math.random().toString(36).substring(2);
-      localStorage.setItem("oauth_state", state);
-      const authUrl = `https://www.reddit.com/api/v1/authorize?client_id=${REDDIT_CLIENT_ID}&response_type=token&state=${state}&redirect_uri=${encodeURIComponent(REDDIT_REDIRECT_URI)}&duration=temporary&scope=identity`;
+      localStorage.setItem('oauth_state', state);
+
+      const authUrl = `https://www.reddit.com/api/v1/authorize?client_id=${CLIENT_ID}` +
+        `&response_type=token&state=${state}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
+        `&duration=temporary&scope=${SCOPES}`;
+
       window.location.href = authUrl;
+    }
+
+    function getAccountAge(createdUtc) {
+      const now = new Date();
+      const createdDate = new Date(createdUtc * 1000);
+      const diff = Math.floor((now - createdDate) / (1000 * 60 * 60 * 24));
+      return diff;
     }
 
     window.onload = () => {
       if (!window.location.hash.includes("access_token")) return;
 
       const params = new URLSearchParams(window.location.hash.slice(1));
-      redditToken = params.get("access_token");
+      const token = params.get("access_token");
       const returnedState = params.get("state");
       const savedState = localStorage.getItem("oauth_state");
-      const result = document.getElementById("result");
+      const status = document.getElementById("status");
 
       if (returnedState !== savedState) {
-        result.innerText = "⚠️ State mismatch. Possible CSRF attack.";
+        status.innerText = "⚠️ State mismatch. CSRF risk.";
         return;
       }
 
       localStorage.removeItem("oauth_state");
-
-      result.innerText = "🔍 Fetching your Reddit profile…";
+      status.innerText = "🔍 Fetching your Reddit profile…";
 
       fetch("https://oauth.reddit.com/api/v1/me", {
         headers: {
-          Authorization: `Bearer ${redditToken}`,
+          Authorization: `Bearer ${token}`,
           "User-Agent": "KarmaChecker (by /u/Nate0911)"
         }
       })
       .then(res => res.json())
       .then(data => {
         const karma = (data.comment_karma || 0) + (data.link_karma || 0);
-        result.innerText = `👤 Username: ${data.name}\nTotal Karma: ${karma}`;
+        const ageDays = getAccountAge(data.created_utc);
 
-        logKarmaToSheet(karma);
+        console.log(`👤 User: ${data.name}`);
+        console.log(`⭐ Total Karma: ${karma}`);
+        console.log(`📅 Account Age: ${ageDays} days`);
+
+        status.innerText = `✅ Logged in as ${data.name}. Check console for karma info.`;
       })
       .catch(err => {
-        result.innerText = "⚠️ Error fetching profile:\n" + err.message;
+        status.innerText = "❌ Error fetching profile: " + err.message;
       });
     };
-
-    function logKarmaToSheet(karma) {
-      gapi.load("client:auth2", () => {
-        gapi.client.init({
-          apiKey: GOOGLE_API_KEY,
-          clientId: GOOGLE_CLIENT_ID,
-          scope: "https://www.googleapis.com/auth/spreadsheets",
-        }).then(() => {
-          return gapi.client.sheets.spreadsheets.values.append({
-            spreadsheetId: SPREADSHEET_ID,
-            range: "Sheet1!A1", // Change to your desired range in the sheet
-            valueInputOption: "RAW",
-            resource: {
-              values: [[new Date().toISOString(), karma]], // Add timestamp and karma
-            },
-          });
-        }).then(response => {
-          alert("Karma logged successfully!");
-          console.log("Data logged to sheet:", response);
-        }).catch(err => {
-          alert("Error logging karma to Google Sheets.");
-          console.error("Logging error:", err);
-        });
-      });
-    }
   </script>
+
 </body>
 </html>
