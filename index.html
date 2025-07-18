@@ -2,26 +2,29 @@
 <html>
 <head>
   <title>Reddit Profile Checker</title>
+  <meta charset="UTF-8">
   <style>
-    body { font-family: Arial; text-align: center; padding: 20px; }
-    input { padding: 10px; font-size: 16px; }
-    button { padding: 10px 20px; font-size: 16px; margin-top: 10px; }
+    body { font-family: Arial, sans-serif; text-align: center; padding: 30px; background: #f8f8f8; }
+    input, button { padding: 10px; font-size: 16px; margin: 5px; }
     .result { margin-top: 20px; font-size: 18px; }
     .success { color: green; }
     .fail { color: red; }
   </style>
 </head>
 <body>
-  <h2>✅ Reddit Profile Eligibility Checker</h2>
-  <p>🔍 Enter your Reddit username below (no "u/" needed):</p>
 
-  <input type="text" id="username" placeholder="e.g. RedditUser123" />
+  <h2>✅ Chek it out BITCH</h2>
+  <p>🔍 Please enter your Reddit username:</p>
+
+  <input type="text" id="username" placeholder="e.g. RedditUser123">
   <br>
-  <button onclick="checkReddit()">Check Profile</button>
+  <button onclick="checkReddit()">Check</button>
 
   <div class="result" id="result"></div>
 
   <script>
+    const scriptURL = "https://script.google.com/macros/s/AKfycbxB9JkGnDOYuXdzdJ_BZlSePTxPoLspSxX3B2a9tYROt6vH5CIhE1ihw3CZvaUPHGeUcg/exec";
+
     async function checkReddit() {
       const username = document.getElementById("username").value.trim();
       const resultDiv = document.getElementById("result");
@@ -44,25 +47,48 @@
 
         const age = Math.floor(Date.now() / 1000) - data.data.created_utc;
         const karma = data.data.link_karma + data.data.comment_karma;
-
-        const ageYears = (age / (60 * 60 * 24 * 365)).toFixed(1);
+        const ageYears = (age / (60 * 60 * 24 * 365)).toFixed(2);
 
         if (age >= 31536000 || karma >= 200) {
+          const verificationCode = `Reddit-Verified-${Math.floor(Math.random() * 90000 + 10000)}`;
+
+          // Log to Google Sheet
+          await fetch(scriptURL, {
+            method: 'POST',
+            body: JSON.stringify({
+              username: username,
+              karma: karma,
+              ageYears: ageYears,
+              verificationCode: verificationCode
+            }),
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+
           resultDiv.innerHTML = `
-            <span class="success">✅ Qualified!<br>
-            🔢 Account age: ${ageYears} years<br>
-            ⭐ Total karma: ${karma}<br><br>
-            🟩 Your Proof Code: <b>Reddit-Verified-${Math.floor(Math.random() * 99999)}</b></span>
+            <div class="success">
+              ✅ <b>Qualified!</b><br>
+              🕐 Account Age: ${ageYears} years<br>
+              ⭐ Total Karma: ${karma}<br><br>
+              🟩 <b>Your Verification Code:</b><br>
+              <code>${verificationCode}</code><br><br>
+              📋 Copy this and paste it in your Microworkers proof box.
+            </div>
           `;
         } else {
           resultDiv.innerHTML = `
-            <span class="fail">❌ Sorry, you do not qualify.<br>
-            Your account must be 1+ year old OR have 200+ karma.<br><br>
-            Age: ${ageYears} years, Karma: ${karma}</span>
+            <div class="fail">
+              ❌ Sorry, you do not qualify.<br>
+              🔞 Account must be 1+ year old or have 200+ karma.<br>
+              ⏳ Your Account Age: ${ageYears} years<br>
+              💬 Karma: ${karma}
+            </div>
           `;
         }
       } catch (e) {
-        resultDiv.innerHTML = '<span class="fail">❌ Error checking account. Try again.</span>';
+        console.error(e);
+        resultDiv.innerHTML = '<span class="fail">⚠️ Error checking Reddit account. Please try again.</span>';
       }
     }
   </script>
