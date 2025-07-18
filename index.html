@@ -42,6 +42,7 @@
     const REDIRECT_URI = "https://nate0911.github.io/Karmacheck/";
     const SHEET_ENDPOINT = "https://script.google.com/macros/s/AKfycbzpD2e2m47dDEhYjB7HOerFy6zJ8NM1VVBlywbLfnMRVX4_NTFk7koYaJET7s0g8O06mA/exec";
 
+    // Function to log in with Reddit OAuth
     function login() {
       const state = Math.random().toString(36).substring(2);
       localStorage.setItem("oauth_state", state);
@@ -53,6 +54,7 @@
       window.location.href = authUrl;
     }
 
+    // Handle the OAuth response
     window.onload = () => {
       if (!window.location.hash.includes("access_token")) return;
 
@@ -82,20 +84,27 @@
         const karma = (data.comment_karma || 0) + (data.link_karma || 0);
         result.innerText = `👤 Username: ${data.name}\nTotal Karma: ${karma}`;
 
-        logToSheet({ karma });
+        // Log karma to Google Sheets
+        logToSheet({ name: data.name, karma });
       })
       .catch(err => {
         result.innerText = "⚠️ Error fetching profile:\n" + err.message;
       });
     };
 
+    // Function to log the karma data to Google Sheets
     function logToSheet(data) {
       console.log("📦 Sending karma to logger:", data);
 
       fetch(SHEET_ENDPOINT, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
+        headers: {
+          "Content-Type": "application/json", // Content type for JSON
+          "Access-Control-Allow-Origin": "*", // Allow cross-origin requests
+          "Access-Control-Allow-Methods": "POST, OPTIONS", // Allow POST requests
+          "Access-Control-Allow-Headers": "Content-Type" // Allow Content-Type header
+        },
+        body: JSON.stringify(data) // Sending data as JSON
       })
       .then(res => res.text())
       .then(text => {
