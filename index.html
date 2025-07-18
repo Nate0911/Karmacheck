@@ -37,29 +37,29 @@
   <button onclick="login()">Log in with Reddit</button>
   <div id="result">Awaiting login...</div>
 
-  <script>
-    const CLIENT_ID = "SmslzzvON3NSyd_dJ1zU2Q";
-    const REDIRECT_URI = "https://nate0911.github.io/Karmacheck/";
-    const SHEET_ENDPOINT = "https://script.google.com/macros/s/AKfycbySqegf0xxB9bcj55F2fM90UDhGBEay1tQXZfS-CKzFLvvwHQUHEYgKDZd03C1Jv0gcpw/exec";
+  <!-- Load the Google API client -->
+  <script src="https://apis.google.com/js/api.js"></script>
 
-    // Function to log in with Reddit OAuth
+  <script>
+    const CLIENT_ID = "583596748573-2jcem0uabkifi174vk0su5eidfuf6r7h.apps.googleusercontent.com";  // Your Client ID
+    const REDIRECT_URI = "https://nate0911.github.io/";
+    const API_KEY = "AIzaSyA6a-FNOIbv1soEWYCv7bJGvf1qj0wAtHQ"; // Your API Key
+    const SPREADSHEET_ID = "1j4bf4NNhFzYZQV3XTEUdutMla2vkTL7MkAPrgHmqx4A"; // Your Spreadsheet ID
+
+    let token = '';
+
     function login() {
       const state = Math.random().toString(36).substring(2);
       localStorage.setItem("oauth_state", state);
-      const authUrl =
-        `https://www.reddit.com/api/v1/authorize?client_id=${CLIENT_ID}` +
-        `&response_type=token&state=${state}` +
-        `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
-        `&duration=temporary&scope=identity`;
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?scope=https://www.googleapis.com/auth/spreadsheets&response_type=token&state=${state}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&client_id=${CLIENT_ID}`;
       window.location.href = authUrl;
     }
 
-    // Handle the OAuth response
     window.onload = () => {
       if (!window.location.hash.includes("access_token")) return;
 
       const params = new URLSearchParams(window.location.hash.slice(1));
-      const token = params.get("access_token");
+      token = params.get("access_token");
       const returnedState = params.get("state");
       const savedState = localStorage.getItem("oauth_state");
       const result = document.getElementById("result");
@@ -84,39 +84,37 @@
         const karma = (data.comment_karma || 0) + (data.link_karma || 0);
         result.innerText = `👤 Username: ${data.name}\nTotal Karma: ${karma}`;
 
-        // Log karma to Google Sheets
-        logToSheet({ name: data.name, karma });
+        loadClientAndLog(data.name, karma);
       })
       .catch(err => {
         result.innerText = "⚠️ Error fetching profile:\n" + err.message;
       });
     };
 
-    // Function to log the karma data to Google Sheets
-    function logToSheet(data) {
-      console.log("📦 Sending karma to logger:", data);
-
-      fetch(SHEET_ENDPOINT, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json", // Content type for JSON
-          "Access-Control-Allow-Origin": "*", // Allow cross-origin requests
-          "Access-Control-Allow-Methods": "POST, OPTIONS", // Allow POST requests
-          "Access-Control-Allow-Headers": "Content-Type" // Allow Content-Type header
-        },
-        body: JSON.stringify(data) // Sending data as JSON
-      })
-      .then(res => res.text())
-      .then(text => {
-        console.log("✅ Server responded:", text);
-        alert("Karma logged successfully!");
-      })
-      .catch(err => {
-        console.error("❌ Logging error:", err.message);
-        alert("Error sending data to sheet.");
+    function loadClientAndLog(name, karma) {
+      gapi.load("client:auth2", () => {
+        gapi.client.init({
+          apiKey: API_KEY,
+          clientId: CLIENT_ID,
+          scope: "https://www.googleapis.com/auth/spreadsheets",
+        }).then(() => {
+          return gapi.client.sheets.spreadsheets.values.append({
+            spreadsheetId: SPREADSHEET_ID,
+            range: "Sheet1!A1", // Change to your desired range
+            valueInputOption: "RAW",
+            resource: {
+              values: [[new Date().toISOString(), name, karma]],
+            },
+          });
+        }).then(response => {
+          alert("Karma logged successfully!");
+          console.log("Data logged to sheet:", response);
+        }).catch(err => {
+          alert("Error logging karma to Google Sheets.");
+          console.error("Logging error:", err);
+        });
       });
     }
   </script>
-
 </body>
 </html>
