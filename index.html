@@ -1,98 +1,70 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>Reddit Karma Checker</title>
+  <title>Reddit Profile Checker</title>
   <style>
-    body {
-      font-family: sans-serif;
-      padding: 2rem;
-      background-color: #f6f6f6;
-      color: #333;
-    }
-    button {
-      background-color: #ff4500;
-      color: white;
-      padding: 10px 20px;
-      font-size: 18px;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    #status {
-      margin-top: 20px;
-      font-size: 16px;
-    }
+    body { font-family: Arial; text-align: center; padding: 20px; }
+    input { padding: 10px; font-size: 16px; }
+    button { padding: 10px 20px; font-size: 16px; margin-top: 10px; }
+    .result { margin-top: 20px; font-size: 18px; }
+    .success { color: green; }
+    .fail { color: red; }
   </style>
 </head>
 <body>
+  <h2>✅ Reddit Profile Eligibility Checker</h2>
+  <p>🔍 Enter your Reddit username below (no "u/" needed):</p>
 
-  <h1>🔐 Reddit Karma Checker</h1>
-  <button onclick="loginWithReddit()">Log in with Reddit</button>
-  <div id="status">Awaiting login...</div>
+  <input type="text" id="username" placeholder="e.g. RedditUser123" />
+  <br>
+  <button onclick="checkReddit()">Check Profile</button>
+
+  <div class="result" id="result"></div>
 
   <script>
-    const CLIENT_ID = 'SmslzzvON3NSyd_dJ1zU2Q';
-    const REDIRECT_URI = 'https://nate0911.github.io/Karmacheck/';
-    const SCOPES = 'identity';
+    async function checkReddit() {
+      const username = document.getElementById("username").value.trim();
+      const resultDiv = document.getElementById("result");
 
-    function loginWithReddit() {
-      const state = Math.random().toString(36).substring(2);
-      localStorage.setItem('oauth_state', state);
-
-      const authUrl = `https://www.reddit.com/api/v1/authorize?client_id=${CLIENT_ID}` +
-        `&response_type=token&state=${state}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
-        `&duration=temporary&scope=${SCOPES}`;
-
-      window.location.href = authUrl;
-    }
-
-    function getAccountAge(createdUtc) {
-      const now = new Date();
-      const createdDate = new Date(createdUtc * 1000);
-      const diff = Math.floor((now - createdDate) / (1000 * 60 * 60 * 24));
-      return diff;
-    }
-
-    window.onload = () => {
-      if (!window.location.hash.includes("access_token")) return;
-
-      const params = new URLSearchParams(window.location.hash.slice(1));
-      const token = params.get("access_token");
-      const returnedState = params.get("state");
-      const savedState = localStorage.getItem("oauth_state");
-      const status = document.getElementById("status");
-
-      if (returnedState !== savedState) {
-        status.innerText = "⚠️ State mismatch. CSRF risk.";
+      if (!username) {
+        resultDiv.innerHTML = '<span class="fail">⚠️ Please enter a Reddit username.</span>';
         return;
       }
 
-      localStorage.removeItem("oauth_state");
-      status.innerText = "🔍 Fetching your Reddit profile…";
+      resultDiv.innerHTML = "⏳ Checking Reddit account...";
 
-      fetch("https://oauth.reddit.com/api/v1/me", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "User-Agent": "KarmaChecker (by /u/Nate0911)"
+      try {
+        const res = await fetch(`https://www.reddit.com/user/${username}/about.json`);
+        const data = await res.json();
+
+        if (!data || !data.data) {
+          resultDiv.innerHTML = '<span class="fail">❌ Could not find that Reddit user.</span>';
+          return;
         }
-      })
-      .then(res => res.json())
-      .then(data => {
-        const karma = (data.comment_karma || 0) + (data.link_karma || 0);
-        const ageDays = getAccountAge(data.created_utc);
 
-        console.log(`👤 User: ${data.name}`);
-        console.log(`⭐ Total Karma: ${karma}`);
-        console.log(`📅 Account Age: ${ageDays} days`);
+        const age = Math.floor(Date.now() / 1000) - data.data.created_utc;
+        const karma = data.data.link_karma + data.data.comment_karma;
 
-        status.innerText = `✅ Logged in as ${data.name}. Check console for karma info.`;
-      })
-      .catch(err => {
-        status.innerText = "❌ Error fetching profile: " + err.message;
-      });
-    };
+        const ageYears = (age / (60 * 60 * 24 * 365)).toFixed(1);
+
+        if (age >= 31536000 || karma >= 200) {
+          resultDiv.innerHTML = `
+            <span class="success">✅ Qualified!<br>
+            🔢 Account age: ${ageYears} years<br>
+            ⭐ Total karma: ${karma}<br><br>
+            🟩 Your Proof Code: <b>Reddit-Verified-${Math.floor(Math.random() * 99999)}</b></span>
+          `;
+        } else {
+          resultDiv.innerHTML = `
+            <span class="fail">❌ Sorry, you do not qualify.<br>
+            Your account must be 1+ year old OR have 200+ karma.<br><br>
+            Age: ${ageYears} years, Karma: ${karma}</span>
+          `;
+        }
+      } catch (e) {
+        resultDiv.innerHTML = '<span class="fail">❌ Error checking account. Try again.</span>';
+      }
+    }
   </script>
-
 </body>
 </html>
